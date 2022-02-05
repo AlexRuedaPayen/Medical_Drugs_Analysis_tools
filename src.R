@@ -1,3 +1,15 @@
+library(dplyr)
+library(reticulate)
+library(spacyr)
+use_condaenv("Medical_Drugs_Analysis_tools")
+use_python("~/anaconda3/envs/Medical_Drugs_Analysis_tools/bin/python3.9", required = NULL)
+
+#devtools::install_github("jaytimm/corpuslingr")
+#devtools::install_github("juliasilge/tidytext")
+#install.packages("slam", type = "binary")
+#devtools::install_github("cran/tm")
+#devtools::install_github("cran/topicmodels")
+
 Object <- setRefClass("Object",
                          fields=list(),
                          methods=list(
@@ -55,7 +67,7 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                           stopifnot("review" %in% colnames(.self$train_data))
                                           stopifnot(n>0)
                                           
-                                          redable_data<-(.self$train_data%>%filter(nchar(review)<1500))
+                                          redable_data<-(.self$train_data%>%filter(nchar(review)<10000))
                                           
                                           stopifnot(n>nrow(redable_data))
                                           
@@ -70,7 +82,7 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                           stopifnot(c("condition","review","uniqueID") %in% colnames(.self$train_data))
                                           
                                           data_condition<-(.self$train_data)%>%filter(condition==condition_name)
-                                          data_condition_parsable<-setNames(data_condition$uniqueID,data_condition$review)
+                                          data_condition_parsable<-setNames(data_condition$review,data_condition$uniqueID)
                                           
                                           parsed_data<-spacy_parse(data_condition_parsable)
                                           parsed_data_NVAA<-parsed_data%>%filter(pos %in% c("NOUN","VERB","ADJ","ADV"))
@@ -80,15 +92,30 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                                                                     toupper=FALSE)%>%
                                                             arrange(doc_id)
                                           
-                                          static_DTM_NVAA <- dtm%>%
+                                          static_DTM_NVAA <- DTM_NVAA%>%
                                             filter(docf < 500 & docf > 5)%>%
                                             tidytext::cast_sparse(row=doc_id,column=lemma,value=txtf)
                                           
                                           static_topic_NVAA <- topicmodels::LDA(static_DTM_NVAA, 
                                                                                  k = n_topics, 
-                                                                                 control=list(seed=12))
-                                          return(static_topic_NVAA)
+                                                                                method='Gibbs',
+                                                                                 control=list(iter = 500, verbose = 25))
+                                          
+                                          static_topic_NVAA_results<-posterior(static_topic_NVAA)
+                                          
+                                          vocabulary <- static_topic_NVAA_results$terms  
+                                          vocbulary_distribution <- static_topic_NVAA_results$topics 
+                                          dim(theta)  
+                                          
+                                          return(static_topic_NVAA_results)
+                                        },
+                                        disorder_learner_LSTM_neural_net_py=function() {
+                                          source_python("/Users/alexandreprofessional/Desktop/Medical_Drugs_analysis/python/disorder_learner_LSTM_neural_net_py.py")
+                                          disorder_LSTM_neural_net_py(data=.self$train_data)
+                                        },
+                                        disorder_learner_BERT_py=function() {
+                                          source_python("/Users/alexandreprofessional/Desktop/Medical_Drugs_analysis/python/disorder_learner_BERT_py.py")
+                                          disorder_LSTM_neural_net_py(data=.self$train_data)
                                         }
-                                        
                                       )
 )
