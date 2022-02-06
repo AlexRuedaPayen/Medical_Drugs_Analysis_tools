@@ -1,40 +1,18 @@
 library(shiny)
 
-shinyUI(fluidPage(
+source("./ui_shiny/Topic_model_UI.R")
+source("./server_shiny/Topic_model_server.R")
 
-    titlePanel("Medical Drugs"),
-
-    sidebarLayout(
-        sidebarPanel(
-        ),
-        mainPanel(
-            column(width=12,
-                 box(width=6,
-                     sliderInput("n_topics",
-                        "Number of topics:",
-                        min = 1,
-                        max = 25,
-                        value = 10)
-                     ),
-                box(width=6,
-                    selectInput(
-                        inputId="condition",
-                        label="Select a condition",
-                        choices=stat_condition$condition[1:10]
-                    )
-                )
-            ),
-            column(width=12,
-                   box(width=6,
-                       dataTableOutput('table_output'),
-                       dataTableOutput('stat_condition')
-                    ),
-                    box(width=6,
-                        dataTableOutput('topic_model_on_condition_beta'),
-                        plotOutput('topic_model_on_condition_gamma')
-                    )
-                )
-            )
+sidebar <- dashboardSidebar(
+    sidebarMenu(
+        id = "tabs",
+        menuItem("Topic model", tabName = "topicmodel", icon = icon("tools")),
+        menuItem("Neural Net", tabName = "neuralnet", icon = icon("file-medical-alt")
+    )),
+    tabItems(
+        tabItem(tabName = "topicmodel"
+                ,Topic_model_UI("Topic_model_UI_id")
         )
     )
 )
+

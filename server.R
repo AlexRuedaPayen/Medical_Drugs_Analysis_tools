@@ -1,35 +1,35 @@
 source('./src.R')
+library(shiny)
+library(shinydashboard)
+library(knitr)
+library(dplyr)
+library(sparkline)
+library(highcharter)
+library(jsonlite)
+library(DT)
+library(lazyeval)
+library(memoise)
+library(opCore)
+library(FSA)
+library(rstudioapi)
+library(shinyWidgets)
+library(shinyBS)
+library(tidyr)
+library(shinyjs)
+library(DBI)
+library(opSelection)
+library(magrittr)
+library(data.table)
+library(stringr)
+library(lubridate)
+library(readxl)
+library(shinycssloaders)
+
 
 data<-Medical_Drugs_Feedback()
 table_output<-data$table_output()
 stat_condition<-data$stat_condition()
 
-shinyServer(function(input, output) {
-
-    output$table_output <- renderDataTable({
-        return(DT::datatable(table_output,options = list(lengthMenu = c(5, 30, 50), pageLength = 5)))
-    })
-    output$stat_condition <-renderDataTable({
-        return(DT::datatable(stat_condition,options = list(lengthMenu = c(5, 30, 50), pageLength = 5)))
-    })
-    output$topic_model_on_condition_gamma<-renderDataTable({
-        data_preprocessed=read.csv2(file=paste0("./class/Medical_Drugs_Feedback/data/test_data.csv"))
-        display=read.csv2(file=paste0("./class/Medical_Drugs_Feedback/data/Anxiety/topic_model_on_condition_gamma.csv"))
-        display=display%>%left_join(data$train_data,by=c("document"="uniqueID"))
-        return(DT::datatable(display,options = list(lengthMenu = c(5, 30, 50), pageLength = 5)))
-    })
-    output$topic_model_on_condition_beta<-renderPlot({
-        library(ggplot2)
-        display=read.csv2(file=paste0("./class/Medical_Drugs_Feedback/data/",input$condition,"/topic_model_on_condition_beta.csv"))
-        display %>%
-            mutate(term = reorder_within(term, beta, topic)) %>%
-            ggplot(aes(beta, term, fill = factor(topic))) +
-            geom_col(show.legend = FALSE) +
-            facet_wrap(~ topic, scales = "free") +
-            scale_y_reordered()
-        
-        return(DT::datatable(display,options = list(lengthMenu = c(5, 30, 50), pageLength = 5)))
-    })
-})
+Topic_model_server(id="Topic_model_id")
 
 shinyApp(ui = shinyUI, server = shinyServer)
