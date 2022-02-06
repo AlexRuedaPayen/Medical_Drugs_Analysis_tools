@@ -173,12 +173,12 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                             .self$result<-read.csv2(file=paste0('~/class/Medical_Drugs_analysis/',name,'/topic_model_on_condition.csv'))
                                           }
                                           else {
-                                            browser()
                                             ###lunch like this in order to use Nohup + mail when programm is done... can run some in parallel
                                             system(paste0('Rscript ./R/',method_name,'_R.R --filename=./class/',class_name,'/',object_name,'/test_data.csv --n_topics=',n_topics,' --condition_name=',condition_name,' --object_name=',object_name))
                                           }
                                          },
                                         disorder_learner_topic_model=function(){
+                                          
                                         },
                                         disorder_learner_LSTM_neural_net=function(object_name,on_cloud=TRUE) {
                                           if (on_cloud) {
