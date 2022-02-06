@@ -24,7 +24,7 @@ import re
 
 ####if that ain't working through reticulate send csv data through ssh to GCP VM and anlyze their
 
-def disorder_learner_LSTM_neural_net_py(file_name):
+def disorder_learner_LSTM_neural_net_py_train(file_name):
   
   data=pd.read_csv(file=file_name)
   
@@ -40,7 +40,7 @@ def disorder_learner_LSTM_neural_net_py(file_name):
   model.add(Embedding(max_fatures, embed_dim,input_length = X.shape[1]))
   model.add(SpatialDropout1D(0.4))
   model.add(LSTM(lstm_out, dropout=0.2, recurrent_dropout=0.2))
-  model.add(Dense(2,activation='softmax'))
+  model.add(Dense(2,activation='softmax')) ###multilabel classification <<- softmax activation
 
   model.compile(loss = 'categorical_crossentropy', optimizer='adam',metrics = ['accuracy'])
   
@@ -57,6 +57,14 @@ def disorder_learner_LSTM_neural_net_py(file_name):
   Y_validate = Y_test[-validation_size:]
   X_test = X_test[:-validation_size]
   Y_test = Y_test[:-validation_size]
+  
+  keras.models.save_model(model,filepath='~/Projects/Medical_Drugs_Analysis_tools/python/Neural_net/disorder_learner_LSTM_neural_net_keras')
+  
+  
+def disorder_learner_LSTM_neural_net_py_train(file_name):
+  
+  model=keras.models.laod_model(filepath='~/Projects/Medical_Drugs_Analysis_tools/python/Neural_net/disorder_learner_LSTM_neural_net_keras',compile = True)
+  
   score,acc = model.evaluate(X_test, Y_test, verbose = 2, batch_size = batch_size)
   print("score: %.2f" % (score))
   print("acc: %.2f" % (acc))

@@ -1,21 +1,9 @@
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
 
-# Define UI for application that draws a histogram
 shinyUI(fluidPage(
 
-    # Application title
     titlePanel("Medical Drugs"),
 
-    # Sidebar with a slider input for number of bins
     sidebarLayout(
         sidebarPanel(
             sliderInput("n_topics",
@@ -24,10 +12,14 @@ shinyUI(fluidPage(
                         max = 25,
                         value = 10)
         ),
-
-        # Show a plot of the generated distribution
         mainPanel(
-            dataTableOutput('table_output')
+            dataTableOutput('table_output'),
+            dataTableOutput('stat_condition')
+            # column(width=12,
+            #     box(width=12,{dataTableOutput('table_output')}),
+            #     box(width=12,{dataTableOutput('stat_condition')})
+            # )
         )
     )
-))
+    )
+)

@@ -1,14 +1,9 @@
 library(dplyr)
 library(reticulate)
 library(spacyr)
-use_condaenv("Medical_Drugs_Analysis_tools")
-use_python("~/anaconda3/envs/Medical_Drugs_Analysis_tools/bin/python3.9", required = NULL)
+# use_condaenv("Medical_Drugs_Analysis_tools")
+# use_python("~/anaconda3/envs/Medical_Drugs_Analysis_tools/bin/python3", required = NULL)
 
-#devtools::install_github("jaytimm/corpuslingr")
-#devtools::install_github("juliasilge/tidytext")
-#install.packages("slam", type = "binary")
-#devtools::install_github("cran/tm")
-#devtools::install_github("cran/topicmodels")
 
 
 Object <- setRefClass("Object",
@@ -45,12 +40,95 @@ Object <- setRefClass("Object",
                                if (file.exists(file_name)) assign(paste0(".self[[",inst,"]]"),read.csv2(file=file_name,sep=";",header=T))
                              }
                            }
-                         ))
+                         ,
+                         
+                      initialize_cloud=function(host="MacAlexandre@34.125.182.253",
+                                                keyfile="~/.ssh/VM-1-GCP-Instance1/key"){
+                        
+                        class_name<-class(.self)[1]
+                        
+                        session=ssh_connect(host=host,
+                                             keyfile=keyfile)
+                        
+                        
+                        print(paste0('creating virtual environnement ',class_name))
+                        
+                        ssh_exec_wait(session, command = c(
+                         'sudo apt-get install wget',
+                         'wget wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh',
+                         'bash Miniconda3-latest-Linux-x86_64.sh'
+                         ))###need to read and validate a licence so it will not work
+                        
+                        ssh_disconnect(session) ##restarting to intialize conda
+                        session=ssh_connect(host=host,
+                                            keyfile=keyfile)
+                        
+                        ssh_exec_wait(session, command = c(
+                         paste0('conda create -n ',class_name, ' python=3.9 anaconda'),
+                         paste0('conda activate ',class_name),
+                         'conda install numpy=1.19.5', #conda is a package manager, it verifies that you don't have apckages overlapping .. if too slow install through pip
+                         'conda install sklearn',
+                         'conda install pandas',
+                         'conda install tensorflow',
+                         paste0('conda desactivate')
+                         
+                         )
+                        )  
+                        
+                        print('environnement ready to work')
+                        
+                        ssh_disconnect(session)
+                        
+                      },
+                      connect_to_cloud=function(host="MacAlexandre@34.125.182.253",
+                                                keyfile="~/.ssh/VM-1-GCP-Instance1/key"){
+                        
+                        class_name<-class(.self)[1]
+                        
+                        session=(ssh_connect(host=host,
+                                           keyfile=keyfile))
+                        ssh_exec_wait(session,c(paste0('conda activate ',class_name)))
+                        return(session)
+                      },
+                      disconnect_from_cloud=function(session) {
+                        ssh_exec_wait(session,c(paste0('conda deactivate')))
+                        ssh_disconnect(session)
+                      },
+                      cloud_compute=function(session,object_name,method_name='disorder_learner_LSTM_neural_net',language="python") {
+                            browser()
+                            class_name<-class(.self)[1]
+                            
+                            scp_upload(session,
+                                       files=paste0('./class/',class_name,'/',object_name,'/train_data.csv'),
+                                       to=paste0('./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/train_data.csv')
+                            )
+                          
+                            if (language=="python") {
+                                ssh_exec_wait(session, command = c(
+                                  paste0('python3 ./Projects/Medical_Drugs_Analysis_tools/python/',method_name,'_py.py ./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/test_data.csv')
+                                ))
+                            }
+                            if (language=="R") {
+                              ssh_exec_wait(session, command = c(
+                                paste0('Rscript ./Projects/Medical_Drugs_Analysis_tools/R/',method_name,'_R.R ./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/test_data.csv')
+                              ))
+                            }
+                            scp_download(session,
+                                         files=paste0('~/Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/',method_name,'.csv'),
+                                         to=paste0('./class/',class_name,'/',object_name,'/',method_name,'.csv')
+                            )
+                            ssh_disconnect(session)
+                      }
+                      
+        )
+)
 
 Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                       contains="Object",
                                       fields = list(train_data ="data.frame",
-                                                    test_data ="data.frame"
+                                                    test_data ="data.frame",
+                                                    topic_model="data.frame"
+                                                    
                                                     ),
                                       methods=list(
                                         
@@ -64,82 +142,47 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                         .self$test_data<-read.csv(file=test_data_path,stringsAsFactors = FALSE)
                                         },
                                         
-                                        table_output=function(n=10) {
+                                        table_output=function() {
                                           stopifnot("review" %in% colnames(.self$train_data))
-                                          stopifnot(n>0)
                                           
-                                          redable_data<-(.self$train_data%>%filter(nchar(review)<10000))
+                                          redable_data<-(.self$train_data)%>%filter(nchar(review)>15)%>%arrange(nchar(review))
                                           
-                                          stopifnot(n>nrow(redable_data))
-                                          
-                                          return(redable_data[1:n,])
+                                          return(redable_data)
                                         },
                                         stat_condition=function(){
-                                          stopifnot("condition" %in% colnames(.self$train_data))
-                                          
-                                          return((.self$train_data)%>%group_by(condition)%>%summarise(Number_of_messages=n())%>%arrange(desc(Number_of_messages)))
+                                          stopifnot("condition" %in% colnames(.self$train_data))     
+                                          return(((.self$train_data)%>%group_by(condition)%>%summarise(Number_of_messages=n())%>%arrange(desc(Number_of_messages))))
                                         },
-                                        topic_model_on_condition=function(condition_name="Anxiety",n_topics=8){
-                                          stopifnot(c("condition","review","uniqueID") %in% colnames(.self$train_data))
-                                          
-                                          data_condition<-(.self$train_data)%>%filter(condition==condition_name)
-                                          data_condition_parsable<-setNames(data_condition$review,data_condition$uniqueID)
-                                          
-                                          parsed_data<-spacy_parse(data_condition_parsable)
-                                          parsed_data_NVAA<-parsed_data%>%filter(pos %in% c("NOUN","VERB","ADJ","ADV"))
-                                          
-                                          DTM_NVAA<-parsed_data_NVAA%>%
-                                                            corpuslingr::clr_get_freq(agg_var=c('doc_id','lemma'),
-                                                                                    toupper=FALSE)%>%
-                                                            arrange(doc_id)
-                                          
-                                          static_DTM_NVAA <- DTM_NVAA%>%
-                                            filter(docf < 500 & docf > 5)%>%
-                                            tidytext::cast_sparse(row=doc_id,column=lemma,value=txtf)
-                                          
-                                          static_topic_NVAA <- topicmodels::LDA(static_DTM_NVAA, 
-                                                                                 k = n_topics, 
-                                                                                method='Gibbs',
-                                                                                 control=list(iter = 500, verbose = 25))
-                                          
-                                          static_topic_NVAA_results<-posterior(static_topic_NVAA)
-                                          
-                                          vocabulary <- static_topic_NVAA_results$terms  
-                                          vocbulary_distribution <- static_topic_NVAA_results$topics 
-                                          dim(theta)  
-                                          
-                                          return(static_topic_NVAA_results)
+                                        topic_model_on_condition=function(condition_name="Anxiety",n_topics=8,object_name,on_cloud=FALSE){
+                                          method_name="topic_model_on_condition"
+                                          if (on_cloud) {
+                                            session=.self$connect_to_cloud()
+                                            cloud_compute(session=session,object_name=object_name,method_name=method_name,language='R')
+                                            .self$result<-read.csv2(file=paste0('~/class/Medical_Drugs_analysis/',name,'/topic_model_on_condition.csv'))
+                                          }
+                                          else {
+                                            system(paste0('Rscript ./R/',method_name,'_R.R --filename=./class/',class_name,'/',object_name,'/test_data.csv --n_topics==8 --condition_name==Anxiety'))
+                                          }
+                                         },
+                                        disorder_learner_topic_model=function(){
                                         },
-                                        disorder_learner_LSTM_neural_net_py=function(name) {
-                                          
-                                          session <- ssh_connect(host="MacAlexandre@34.125.182.253",
-                                                                 keyfile="~/.ssh/VM-1-GCP-Instance1/key",
-                                                                 passwd="kghRIODEJANEIRO66") #testpass
-                                          
-                                          
-                                          scp_upload(session,
-                                                     files=paste0('scp ./class/Medical_Drugs_analysis/',name,'/train_data.csv'),
-                                                     to=paste0('~/Projects/Medical_Drugs_Analysis_tools/class/Medical_Drugs_analysis/',name,'/test_data.csv')
-                                          )
-                                          
-                                          ssh_exec_wait(session, command = c(
-                                            'python3 ~/Projects/Medical_Drugs_Analysis_tools/python/disorder_learner_LSTM_neural_net_py.py'
-                                          ))
-                                          scp_download(session,
-                                                       files=paste0('~/Projects/Medical_Drugs_Analysis_tools/class/Medical_Drugs_analysis/',name,'/disorder_learner_LSTM_neural_net_py.csv'),
-                                                       to=paste0('~/class/Medical_Drugs_analysis/',name,'/disorder_learner_LSTM_neural_net_py.csv')
-                                                       )
-                                          
-                                          .self$result<-read.csv2(file=paste0('~/class/Medical_Drugs_analysis/',name,'/disorder_learner_LSTM_neural_net_py.csv'))
+                                        disorder_learner_LSTM_neural_net=function(object_name,on_cloud=TRUE) {
+                                          if (on_cloud) {
+                                            session=.self$connect_to_cloud()
+                                            cloud_compute(session=session,object_name=object_name,method_name='disorder_learner_LSTM_neural_net',language='python')
+                                            .self$result<-read.csv2(file=paste0('~/class/Medical_Drugs_analysis/',name,'/disorder_learner_LSTM_neural_net.csv'))
+                                          }
+                                          else {
+                                            system(paste0('python3 ./Projects/Medical_Drugs_Analysis_tools/python/',method_name,'_py.py ./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/test_data.csv'))
+                                          }
                                         },
-                                        disorder_learner_BERT_py=function() {
-                                          source_python("/Users/alexandreprofessional/Desktop/Medical_Drugs_analysis/python/disorder_learner_BERT_py.py")
-                                          disorder_LSTM_neural_net_py(data=.self$train_data)
+                                        disorder_learner_BERT=function() {
                                         }
                                       )
 )
 
-
-for (classname in class(get(ls()))) {
-  system(paste0("mkdir ./class/",as.character(classname)))
+if (!file.exists(paste0("./class/",as.character(classname)))) {
+  for (classname in class(get(ls()))) {
+    system(paste0("mkdir ./class/",as.character(classname)))
+  }
 }

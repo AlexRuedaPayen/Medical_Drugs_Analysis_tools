@@ -1,16 +1,3 @@
-library(shiny)
-library(dplyr)
-library(devtools)
-library(NLP)
-library(slam)
-library(tm)
-library(topicmodels)
-library(corpusdatr)
-library(corpuslingr)
-
-library("spacyr")
-spacy_initialize(model = "en_core_web_sm")
-
 source('./src.R')
 
 data<-Medical_Drugs_Feedback()
@@ -20,12 +7,12 @@ stat_condition<-data$stat_condition()
 shinyServer(function(input, output) {
 
     output$table_output <- renderDataTable({
-        return(table_output)
+        return(DT::datatable(table_output,options = list(lengthMenu = c(5, 30, 50), pageLength = 5)))
     })
     output$stat_condition <-renderDataTable({
-        return(stat_condition)
+        return(DT::datatable(stat_condition,options = list(lengthMenu = c(5, 30, 50), pageLength = 5)))
     })
 
 })
 
-spacy_finalize()
+shinyApp(ui = shinyUI, server = shinyServer)
