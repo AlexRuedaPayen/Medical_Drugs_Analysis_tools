@@ -47,37 +47,43 @@ Object <- setRefClass("Object",
                         
                         class_name<-class(.self)[1]
                         
-                        session=ssh_connect(host=host,
-                                             keyfile=keyfile)
-                        
-                        
-                        print(paste0('creating virtual environnement ',class_name))
-                        
-                        ssh_exec_wait(session, command = c(
-                         'sudo apt-get install wget',
-                         'wget wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh',
-                         'bash Miniconda3-latest-Linux-x86_64.sh'
-                         ))###need to read and validate a licence so it will not work
-                        
-                        ssh_disconnect(session) ##restarting to intialize conda
+                        # session=ssh_connect(host=host,
+                        #                      keyfile=keyfile)
+                        # 
+                        # 
+                        # print(paste0('creating virtual environnement ',class_name))
+                        # 
+                        # ssh_exec_wait(session, command = c(
+                        #  'sudo apt-get install wget',
+                        #  'wget wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh',
+                        #  'bash Miniconda3-latest-Linux-x86_64.sh'
+                        #  ))###need to read and validate a licence so it will not work
+                        # 
+                        # ssh_disconnect(session) ##restarting to intialize conda
                         session=ssh_connect(host=host,
                                             keyfile=keyfile)
+                        tryCatch({
                         
-                        ssh_exec_wait(session, command = c(
-                         paste0('conda create -n ',class_name, ' python=3.9 anaconda'),
-                         paste0('conda activate ',class_name),
-                         'conda install numpy=1.19.5', #conda is a package manager, it verifies that you don't have apckages overlapping .. if too slow install through pip
-                         'conda install sklearn',
-                         'conda install pandas',
-                         'conda install tensorflow',
-                         paste0('conda desactivate')
-                         
-                         )
-                        )  
+                          ssh_exec_wait(session, command = c(
+                           paste0('conda create -n ',class_name, ' python=3.9 anaconda'),
+                           paste0('conda activate ',class_name),
+                           'conda install numpy=1.19.5', #conda is a package manager, it verifies that you don't have apckages overlapping .. if too slow install through pip
+                           'conda install sklearn',
+                           'conda install pandas',
+                           'conda install tensorflow',
+                           paste0('conda desactivate')
+                           )
+                          )
+                          print('environnement ready to work')
+                        },
+                        error=function(cond) {
+                          print("Didn't work as expected")
+                        },
+                        finally={
+                          ssh_disconnect(session)
+                        })
                         
-                        print('environnement ready to work')
-                        
-                        ssh_disconnect(session)
+                       
                         
                       },
                       connect_to_cloud=function(host="MacAlexandre@34.125.182.253",
@@ -97,27 +103,34 @@ Object <- setRefClass("Object",
                       cloud_compute=function(session,object_name,method_name='disorder_learner_LSTM_neural_net',language="python") {
                             browser()
                             class_name<-class(.self)[1]
+                            tryCatch({  
+                              scp_upload(session,
+                                         files=paste0('./class/',class_name,'/',object_name,'/train_data.csv'),
+                                         to=paste0('./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/train_data.csv')
+                              )
                             
-                            scp_upload(session,
-                                       files=paste0('./class/',class_name,'/',object_name,'/train_data.csv'),
-                                       to=paste0('./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/train_data.csv')
-                            )
-                          
-                            if (language=="python") {
+                              if (language=="python") {
+                                  ssh_exec_wait(session, command = c(
+                                    paste0('python3 ./Projects/Medical_Drugs_Analysis_tools/python/',method_name,'_py.py ./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/test_data.csv')
+                                  ))
+                              }
+                              if (language=="R") {
                                 ssh_exec_wait(session, command = c(
-                                  paste0('python3 ./Projects/Medical_Drugs_Analysis_tools/python/',method_name,'_py.py ./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/test_data.csv')
+                                  paste0('Rscript ./Projects/Medical_Drugs_Analysis_tools/R/',method_name,'_R.R ./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/test_data.csv')
                                 ))
+                              }
+                              scp_download(session,
+                                           files=paste0('~/Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/',method_name,'.csv'),
+                                           to=paste0('./class/',class_name,'/',object_name,'/',method_name,'.csv')
+                              )
+                             },
+                            error=function(cond) {
+                              print("Didn't work as expected")
+                            },
+                            finally={
+                              ssh_disconnect(session)
                             }
-                            if (language=="R") {
-                              ssh_exec_wait(session, command = c(
-                                paste0('Rscript ./Projects/Medical_Drugs_Analysis_tools/R/',method_name,'_R.R ./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/test_data.csv')
-                              ))
-                            }
-                            scp_download(session,
-                                         files=paste0('~/Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/',method_name,'.csv'),
-                                         to=paste0('./class/',class_name,'/',object_name,'/',method_name,'.csv')
-                            )
-                            ssh_disconnect(session)
+                         )
                       }
                       
         )
