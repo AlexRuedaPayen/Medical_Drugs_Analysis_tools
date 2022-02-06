@@ -14,6 +14,7 @@ spacy_initialize(model = "en_core_web_sm")
 disorder_learner_topic_model<-function(filename,n_topics=8,condition_name='Anxiety',object_name='data') {
   train_data=read.csv2(file=filename,stringsAsFactors = FALSE)
   
+  browser()
   stopifnot(c("condition","review","uniqueID") %in% colnames(train_data))
   
   data_condition<-(train_data)
@@ -48,11 +49,7 @@ disorder_learner_topic_model<-function(filename,n_topics=8,condition_name='Anxie
   
   system(paste0("mkdir ./class/Medical_Drugs_Feedback/",object_name,"/",condition_name))
   write.csv2(x=static_topic_NVAA_results_theta,file=paste0("./class/Medical_Drugs_Feedback/",object_name,"/",condition_name,"/topic_model_on_condition_theta.csv"))
-  
-  
-  
-  library(ggplot2)
-  library(dplyr)
+
   
   static_topic_NVAA_results_beta <- tidy(static_topic_NVAA_results_theta, matrix = "beta") 
   
@@ -104,4 +101,19 @@ topic_model_on_condition(filename=as.character(param[['filename']]),
                          object_name=as.character(param[['object_name']]))->a
 
 
+library(stringr)
+condition_list<-stat_condition$condition[1:20]
+condition_list<-str_replace_all(condition_list," ","_")
 
+for (condition in condition_list) {
+  
+  param=list(filename='./class/Medical_Drugs_Feedback/data/test_data.csv',
+             n_topics=8,
+             condition_name=condition,
+             object_name='data')
+  
+  topic_model_on_condition(filename=as.character(param[['filename']]),
+                           n_topics=as.integer(param[['n_topics']]),
+                           condition_name=as.character(param[['condition_name']]),
+                           object_name=as.character(param[['object_name']]))
+}

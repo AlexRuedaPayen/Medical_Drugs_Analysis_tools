@@ -1,10 +1,7 @@
 library(shiny)
 
 Topic_model_server <- function(input, output, session){
-  # 
-  # shiny::moduleServer(id, function(input, output,session){
-  #   
-  #   
+
     output$Title_descriptive_stat<-renderUI({
       HTML(paste0("Descriptive stat on data"))
     })

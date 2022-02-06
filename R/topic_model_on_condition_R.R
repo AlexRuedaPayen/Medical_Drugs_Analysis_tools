@@ -15,7 +15,7 @@ spacy_initialize(model = "en_core_web_sm")
 topic_model_on_condition<-function(filename,n_topics=8,condition_name='Anxiety',object_name='data') {
    train_data=read.csv2(file=filename,stringsAsFactors = FALSE)
    
-   if (!file.exists(paste0("./class/Medical_Drugs_Feedback/",object_name,"/",condition_name))) system(paste0("mkdir ./class/Medical_Drugs_Feedback/",object_name,"/",condition_name))
+   if (!file.exists(paste0("./class/Medical_Drugs_Feedback/",object_name,"/",str_replace_all(condition_name," ","_")))) system(paste0("mkdir ./class/Medical_Drugs_Feedback/",object_name,"/",str_replace_all(condition_name," ","_")))
  
     stopifnot(c("condition","review","uniqueID") %in% colnames(train_data))
     
@@ -49,7 +49,7 @@ topic_model_on_condition<-function(filename,n_topics=8,condition_name='Anxiety',
       arrange(topic, -gamma)
     
     write.csv2(x=static_topic_NVAA_results_gamma,
-               file=paste0("./class/Medical_Drugs_Feedback/",object_name,"/",condition_name,"/topic_model_on_condition_gamma.csv"))
+               file=paste0("./class/Medical_Drugs_Feedback/",object_name,"/",str_replace_all(condition_name," ","_"),"/topic_model_on_condition_gamma.csv"))
     
     
     static_topic_NVAA_results_beta <- tidy(static_topic_NVAA, matrix = "beta") 
@@ -61,7 +61,7 @@ topic_model_on_condition<-function(filename,n_topics=8,condition_name='Anxiety',
       arrange(topic, -beta)
     
     write.csv2(x=static_topic_NVAA_results_beta,
-               file=paste0("./class/Medical_Drugs_Feedback/",object_name,"/",condition_name,"/topic_model_on_condition_beta.csv"))
+               file=paste0("./class/Medical_Drugs_Feedback/",object_name,"/",str_replace_all(condition_name," ","_"),"/topic_model_on_condition_beta.csv"))
     
 }
 
@@ -88,15 +88,26 @@ topic_model_on_condition<-function(filename,n_topics=8,condition_name='Anxiety',
 # 
 # print(param)
 
-param=list(filename='./class/Medical_Drugs_Feedback/data/test_data.csv',
-           n_topics=8,
-           condition_name='Anxiety',
-           object_name='data')
+condition_list<-stat_condition$condition[1:20]
 
-topic_model_on_condition(filename=as.character(param[['filename']]),
-                         n_topics=as.integer(param[['n_topics']]),
-                         condition_name=as.character(param[['condition_name']]),
-                         object_name=as.character(param[['object_name']]))->a
+for (condition in condition_list) {
+  
+  print(condition)
+ 
+  param=list(filename='./class/Medical_Drugs_Feedback/data/test_data.csv',
+             n_topics=9,
+             condition_name=condition,
+             object_name='data')
+  
+  topic_model_on_condition(filename=as.character(param[['filename']]),
+                           n_topics=as.integer(param[['n_topics']]),
+                           condition_name=as.character(param[['condition_name']]),
+                           object_name=as.character(param[['object_name']]))
+  
+  print("___________")
+}
+
+
 
 
 
