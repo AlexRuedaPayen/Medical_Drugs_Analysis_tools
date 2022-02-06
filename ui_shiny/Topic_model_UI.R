@@ -1,5 +1,5 @@
 
-Topic_model_UI<-function(id,label="Ingenious_opportunity_cost_UI") {
+Topic_model_UI<-function(id,label="Topic_model_UI") {
   ns<- NS(id)
   fluidPage(
     mainPanel(
@@ -15,7 +15,8 @@ Topic_model_UI<-function(id,label="Ingenious_opportunity_cost_UI") {
                  selectInput(
                    inputId=ns("condition"),
                    label="Select a condition",
-                   choices=stat_condition$condition[1:10]
+                   choices=stat_condition$condition[1:10],
+                   selected="Anxiety"
                  )
              )
       ),

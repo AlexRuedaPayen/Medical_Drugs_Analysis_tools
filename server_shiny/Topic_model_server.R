@@ -1,8 +1,10 @@
-Topic_model_server <- function(id){
-  
-  moduleServer(id, function(input, output,session){
-    
-    
+library(shiny)
+
+Topic_model_server <- function(input, output, session){
+  # 
+  # shiny::moduleServer(id, function(input, output,session){
+  #   
+  #   
     output$Title_descriptive_stat<-renderUI({
       HTML(paste0("Descriptive stat on data"))
     })
@@ -20,7 +22,7 @@ Topic_model_server <- function(id){
     output$topic_model_on_condition_gamma<-renderDataTable({
       data_preprocessed=read.csv2(file=paste0("./class/Medical_Drugs_Feedback/data/test_data.csv"))
       display=read.csv2(file=paste0("./class/Medical_Drugs_Feedback/data/Anxiety/topic_model_on_condition_gamma.csv"))
-      display=display%>%left_join(data$train_data,by=c("document"="uniqueID"))
+      display=display%>%left_join(data_preprocessed,by=c("document"="uniqueID"))
       return(DT::datatable(display,options = list(lengthMenu = c(5, 30, 50), pageLength = 5)))
     })
     output$topic_model_on_condition_beta<-renderPlot({
@@ -35,5 +37,5 @@ Topic_model_server <- function(id){
       
       return(DT::datatable(display,options = list(lengthMenu = c(5, 30, 50), pageLength = 5)))
     })
-  })
+
 }
