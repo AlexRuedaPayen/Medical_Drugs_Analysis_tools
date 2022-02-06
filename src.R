@@ -10,6 +10,7 @@ use_python("~/anaconda3/envs/Medical_Drugs_Analysis_tools/bin/python3.9", requir
 #devtools::install_github("cran/tm")
 #devtools::install_github("cran/topicmodels")
 
+
 Object <- setRefClass("Object",
                          fields=list(),
                          methods=list(
@@ -26,7 +27,7 @@ Object <- setRefClass("Object",
                                file_name<-(paste0(dir_path,"/",inst,".csv"))
                                
                                if (file.exists(file_name)) file.remove(file_name)
-                               write.csv2(inst,file=file_name,sep=";",col.names=T)
+                               write.csv2(.self[[inst]],file=file_name,sep=";",col.names=T)
                              }
                            },
                            
@@ -109,9 +110,27 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                           
                                           return(static_topic_NVAA_results)
                                         },
-                                        disorder_learner_LSTM_neural_net_py=function() {
-                                          source_python("/Users/alexandreprofessional/Desktop/Medical_Drugs_analysis/python/disorder_learner_LSTM_neural_net_py.py")
-                                          disorder_LSTM_neural_net_py(data=.self$train_data)
+                                        disorder_learner_LSTM_neural_net_py=function(name) {
+                                          
+                                          session <- ssh_connect(host="MacAlexandre@34.125.182.253",
+                                                                 keyfile="~/.ssh/VM-1-GCP-Instance1/key",
+                                                                 passwd="kghRIODEJANEIRO66") #testpass
+                                          
+                                          
+                                          scp_upload(session,
+                                                     files=paste0('scp ./class/Medical_Drugs_analysis/',name,'/train_data.csv'),
+                                                     to=paste0('~/Projects/Medical_Drugs_Analysis_tools/class/Medical_Drugs_analysis/',name,'/test_data.csv')
+                                          )
+                                          
+                                          ssh_exec_wait(session, command = c(
+                                            'python3 ~/Projects/Medical_Drugs_Analysis_tools/python/disorder_learner_LSTM_neural_net_py.py'
+                                          ))
+                                          scp_download(session,
+                                                       files=paste0('~/Projects/Medical_Drugs_Analysis_tools/class/Medical_Drugs_analysis/',name,'/disorder_learner_LSTM_neural_net_py.csv'),
+                                                       to=paste0('~/class/Medical_Drugs_analysis/',name,'/disorder_learner_LSTM_neural_net_py.csv')
+                                                       )
+                                          
+                                          .self$result<-read.csv2(file=paste0('~/class/Medical_Drugs_analysis/',name,'/disorder_learner_LSTM_neural_net_py.csv'))
                                         },
                                         disorder_learner_BERT_py=function() {
                                           source_python("/Users/alexandreprofessional/Desktop/Medical_Drugs_analysis/python/disorder_learner_BERT_py.py")
@@ -119,3 +138,8 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                         }
                                       )
 )
+
+
+for (classname in class(get(ls()))) {
+  system(paste0("mkdir ./class/",as.character(classname)))
+}

@@ -22,7 +22,12 @@ from sklearn.model_selection import train_test_split
 from keras.utils.np_utils import to_categorical
 import re
 
-def disorder_learner_LSTM_neural_net_py(data):
+####if that ain't working through reticulate send csv data through ssh to GCP VM and anlyze their
+
+def disorder_learner_LSTM_neural_net_py(file_name):
+  
+  data=pd.read_csv(file=file_name)
+  
   max_fatures = 2000
   tokenizer = Tokenizer(num_words=max_fatures, split=' ')
   tokenizer.fit_on_texts(data['review'].values)
@@ -55,3 +60,9 @@ def disorder_learner_LSTM_neural_net_py(data):
   score,acc = model.evaluate(X_test, Y_test, verbose = 2, batch_size = batch_size)
   print("score: %.2f" % (score))
   print("acc: %.2f" % (acc))
+  
+  
+import sys
+
+file_name_=sys.argv[1]
+disorder_learner_LSTM_neural_net_py(file_name_)

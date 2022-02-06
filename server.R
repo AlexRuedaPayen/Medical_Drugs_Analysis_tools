@@ -7,6 +7,7 @@ library(tm)
 library(topicmodels)
 library(corpusdatr)
 library(corpuslingr)
+
 library("spacyr")
 spacy_initialize(model = "en_core_web_sm")
 
