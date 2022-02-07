@@ -3,8 +3,9 @@ title: "Medical_Drugs_Analysis_tools"
 author: "Alexandre Rueda Payen"
 date: "2/6/2022"
 output:
-  pdf_document: default
-  html_document: default
+  pdf_document: 
+       toc: true
+       theme: united
 ---
 
 ```{r setup, include=FALSE}
@@ -14,17 +15,19 @@ library(ggplot2)
 library(dplyr)
 library(stringr)
 library(stringi)
+library(tidytext)
 
 print(getwd())
 
 plot_topic_model_on_condition_beta<-function(condition){
   display=read.csv2(file=paste0("./class/Medical_Drugs_Feedback/data/",str_replace_all(condition," ","_"),"/topic_model_on_condition_beta.csv"))
-      # display %>%
-      #   mutate(term = reorder_within(term, beta, topic)) %>%
-      #   ggplot(aes(beta, term, fill = factor(topic))) +
-      #   geom_col(show.legend = FALSE) +
-      #   facet_wrap(~ topic, scales = "free") +
-      #   scale_y_reordered()
+  
+      display %>%
+        mutate(term = reorder_within(term, beta, topic)) %>%
+        ggplot(aes(beta, term, fill = factor(topic))) +
+        geom_col(show.legend = FALSE) +
+        facet_wrap(~ topic, scales = "free") +
+        scale_y_reordered()
 }
 
 sum_up_topic_model_on_condition_gamma<-function(condition) {
@@ -44,16 +47,14 @@ sum_up_topic_model_on_condition_gamma<-function(condition) {
 ## Birth Control
 
 ```{r, echo=F}
-# condition='Birth Control'
-# plot_topic_model_on_condition_beta(condition)
+condition='Birth Control'
+plot_topic_model_on_condition_beta(condition)
 ```
 
 ```{r, echo=FALSE}
 condition='Birth Control'
 sum_up_topic_model_on_condition_gamma(condition)
 ```
-
-Interpretation :
 
 ## ADHD
 

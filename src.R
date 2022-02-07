@@ -1,10 +1,7 @@
 library(dplyr)
 library(reticulate)
 library(spacyr)
-# use_condaenv("Medical_Drugs_Analysis_tools")
-# use_python("~/anaconda3/envs/Medical_Drugs_Analysis_tools/bin/python3", required = NULL)
-
-
+library(ssh)
 
 Object <- setRefClass("Object",
                          fields=list(),
@@ -85,8 +82,8 @@ Object <- setRefClass("Object",
                        
                         
                       },
-                      connect_to_cloud=function(host="MacAlexandre@34.125.182.253",
-                                                keyfile="~/.ssh/VM-1-GCP-Instance1/key"){
+                      connect_to_cloud=function(host="MacAlexandre@34.68.238.69",
+                                                keyfile="~/.ssh/VM-1-GCP-Instance2/key"){
                         
                         class_name<-class(.self)[1]
                         
@@ -99,7 +96,7 @@ Object <- setRefClass("Object",
                         ssh_exec_wait(session,c(paste0('conda deactivate')))
                         ssh_disconnect(session)
                       },
-                      cloud_compute=function(session,object_name,method_name='disorder_learner_LSTM_neural_net',language="python") {
+                      cloud_compute=function(session,object_name='data',method_name='disorder_learner_LSTM_neural_net',language="python") {
                             browser()
                             class_name<-class(.self)[1]
                             tryCatch({  
@@ -109,6 +106,11 @@ Object <- setRefClass("Object",
                               )
                             
                               if (language=="python") {
+                                scp_upload(session,
+                                           files=paste0('./python/',method_name,'_py.py'),
+                                           to=paste0('./Projects/Medical_Drugs_Analysis_tools/python/',method_name,'_py.py')
+                                )
+                                
                                   ssh_exec_wait(session, command = c(
                                     paste0('python3 ./Projects/Medical_Drugs_Analysis_tools/python/',method_name,'_py.py ./Projects/Medical_Drugs_Analysis_tools/class/',class_name,'/',object_name,'/test_data.csv')
                                   ))
@@ -168,6 +170,7 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                         topic_model_on_condition=function(condition_name="Anxiety",n_topics=8,object_name,on_cloud=FALSE){
                                           method_name="topic_model_on_condition"
                                           if (on_cloud) {
+                                            
                                             session=.self$connect_to_cloud()
                                             cloud_compute(session=session,object_name=object_name,method_name=method_name,language='R')
                                             .self$result<-read.csv2(file=paste0('~/class/Medical_Drugs_analysis/',name,'/topic_model_on_condition.csv'))
@@ -180,7 +183,7 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                         disorder_learner_topic_model=function(){
                                           
                                         },
-                                        disorder_learner_LSTM_neural_net=function(object_name,on_cloud=TRUE) {
+                                        disorder_learner_LSTM_neural_net=function(object_name='data',on_cloud=TRUE) {
                                           if (on_cloud) {
                                             session=.self$connect_to_cloud()
                                             cloud_compute(session=session,object_name=object_name,method_name='disorder_learner_LSTM_neural_net',language='python')
@@ -195,8 +198,6 @@ Medical_Drugs_Feedback <- setRefClass("Medical_Drugs_Feedback",
                                       )
 )
 
-if (!file.exists(paste0("./class/",as.character(classname)))) {
-  for (classname in class(get(ls()))) {
-    system(paste0("mkdir ./class/",as.character(classname)))
-  }
+for (classname in class(get(ls()))) {
+    if (!file.exists(paste0("./class/",as.character(classname)))) system(paste0("mkdir ./class/",as.character(classname)))
 }
